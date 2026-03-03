@@ -751,9 +751,8 @@ $currentAdminPage = 'settings';
             }, 4000);
         }
 
-        // === Photo Upload (Direct to Supabase Storage) ===
-        const SUPABASE_URL = '<?php echo SUPABASE_URL; ?>';
-        const SUPABASE_KEY = '<?php echo SUPABASE_ANON_KEY; ?>';
+        // === Photo Upload (via Server API) ===
+        const SITE_URL = '<?php echo SITE_URL; ?>';
         const avatarInput = document.getElementById('avatarInput');
         const photoPreview = document.getElementById('photoPreview');
         const previewAvatar = document.getElementById('previewAvatar');
@@ -781,26 +780,23 @@ $currentAdminPage = 'settings';
 
             const ext = file.name.split('.').pop();
             const fileName = 'avatar-' + Date.now() + '.' + ext;
-            const filePath = 'avatars/' + fileName;
 
             try {
                 const response = await fetch(
-                    SUPABASE_URL + '/storage/v1/object/portfolio/' + filePath,
+                    SITE_URL + '/api/upload.php?filename=' + encodeURIComponent(fileName),
                     {
                         method: 'POST',
                         headers: {
-                            'Authorization': 'Bearer ' + SUPABASE_KEY,
-                            'apikey': SUPABASE_KEY,
-                            'Content-Type': file.type,
-                            'x-upsert': 'true'
+                            'Content-Type': file.type
                         },
                         body: file
                     }
                 );
 
-                if (response.ok || response.status === 200 || response.status === 201) {
-                    const publicUrl = SUPABASE_URL + '/storage/v1/object/public/portfolio/' + filePath;
-                    avatarUrlInput.value = publicUrl;
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    avatarUrlInput.value = result.url;
 
                     // Show success
                     uploadLabel.textContent = 'Photo Uploaded!';
@@ -812,10 +808,9 @@ $currentAdminPage = 'settings';
                     uploadBtn.style.borderColor = 'rgba(16, 185, 129, 0.3)';
                     lucide.createIcons();
                 } else {
-                    const errData = await response.text();
-                    console.error('Upload failed:', response.status, errData);
+                    console.error('Upload failed:', result);
                     uploadLabel.textContent = 'Upload Failed';
-                    uploadStatus.textContent = 'Error: ' + (errData || 'Could not upload. Check Supabase Storage bucket settings.');
+                    uploadStatus.textContent = 'Error: ' + (result.error || 'Could not upload photo.');
                     uploadStatus.style.color = 'var(--accent-red)';
                     uploadBtn.innerHTML = '<i data-lucide="alert-circle"></i> Try Again';
                     lucide.createIcons();
