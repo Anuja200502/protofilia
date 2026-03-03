@@ -7,7 +7,10 @@ require_once __DIR__ . '/../includes/functions.php';
 
 header('Content-Type: application/json');
 
-if (!is_admin_logged_in()) {
+// Simple auth: verify a token that only the admin page knows
+$authToken = $_GET['token'] ?? '';
+$expectedToken = md5(SUPABASE_SERVICE_KEY . 'upload');
+if ($authToken !== $expectedToken) {
     http_response_code(401);
     echo json_encode(['error' => 'Not authenticated']);
     exit;

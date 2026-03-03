@@ -753,6 +753,7 @@ $currentAdminPage = 'settings';
 
         // === Photo Upload (via Server API) ===
         const SITE_URL = '<?php echo SITE_URL; ?>';
+        const UPLOAD_TOKEN = '<?php echo md5(SUPABASE_SERVICE_KEY . "upload"); ?>';
         const avatarInput = document.getElementById('avatarInput');
         const photoPreview = document.getElementById('photoPreview');
         const previewAvatar = document.getElementById('previewAvatar');
@@ -783,7 +784,7 @@ $currentAdminPage = 'settings';
 
             try {
                 const response = await fetch(
-                    SITE_URL + '/api/upload.php?filename=' + encodeURIComponent(fileName),
+                    SITE_URL + '/api/upload.php?filename=' + encodeURIComponent(fileName) + '&token=' + UPLOAD_TOKEN,
                     {
                         method: 'POST',
                         headers: {
