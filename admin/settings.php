@@ -534,14 +534,15 @@ $currentAdminPage = 'settings';
                             <?php endif; ?>
                         </div>
                         <div class="photo-upload-text">
-                            <h4>Upload Profile Photo</h4>
-                            <p>Drag and drop or click to select. JPG, PNG or WebP. Max 2MB.</p>
-                            <span class="btn-upload">
+                            <h4 id="uploadLabel">Upload Profile Photo</h4>
+                            <p id="uploadStatus">Drag and drop or click to select. JPG, PNG or WebP. Max 2MB.</p>
+                            <span class="btn-upload" id="uploadBtn">
                                 <i data-lucide="upload"></i> Choose File
                             </span>
                         </div>
-                        <input type="file" id="avatarInput" name="avatar" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                        <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
                     </label>
+                    <input type="hidden" name="avatar_url" id="avatarUrlInput" value="<?php echo sanitize($settings['avatar_url'] ?? ''); ?>">
                 </div>
                 
                 <!-- Personal Info -->
@@ -750,27 +751,98 @@ $currentAdminPage = 'settings';
             }, 4000);
         }
 
-        // === Photo Upload Preview ===
+        // === Photo Upload (Direct to Supabase Storage) ===
+        const SUPABASE_URL = '<?php echo SUPABASE_URL; ?>';
+        const SUPABASE_KEY = '<?php echo SUPABASE_ANON_KEY; ?>';
         const avatarInput = document.getElementById('avatarInput');
         const photoPreview = document.getElementById('photoPreview');
         const previewAvatar = document.getElementById('previewAvatar');
         const uploadArea = document.getElementById('photoUploadArea');
+        const avatarUrlInput = document.getElementById('avatarUrlInput');
+        const uploadLabel = document.getElementById('uploadLabel');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        async function uploadAvatar(file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size must be less than 2MB');
+                return;
+            }
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                alert('Only JPG, PNG, and WebP files are allowed');
+                return;
+            }
+
+            // Show uploading state
+            uploadLabel.textContent = 'Uploading...';
+            uploadStatus.textContent = 'Please wait while your photo is being uploaded...';
+            uploadBtn.innerHTML = '<i data-lucide="loader"></i> Uploading...';
+            lucide.createIcons();
+
+            const ext = file.name.split('.').pop();
+            const fileName = 'avatar-' + Date.now() + '.' + ext;
+            const filePath = 'avatars/' + fileName;
+
+            try {
+                const response = await fetch(
+                    SUPABASE_URL + '/storage/v1/object/portfolio/' + filePath,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + SUPABASE_KEY,
+                            'apikey': SUPABASE_KEY,
+                            'Content-Type': file.type,
+                            'x-upsert': 'true'
+                        },
+                        body: file
+                    }
+                );
+
+                if (response.ok || response.status === 200 || response.status === 201) {
+                    const publicUrl = SUPABASE_URL + '/storage/v1/object/public/portfolio/' + filePath;
+                    avatarUrlInput.value = publicUrl;
+
+                    // Show success
+                    uploadLabel.textContent = 'Photo Uploaded!';
+                    uploadStatus.textContent = 'Your photo has been uploaded. Click Save Changes below to apply.';
+                    uploadStatus.style.color = 'var(--accent-green)';
+                    uploadBtn.innerHTML = '<i data-lucide="check-circle"></i> Uploaded';
+                    uploadBtn.style.background = 'rgba(16, 185, 129, 0.15)';
+                    uploadBtn.style.color = 'var(--accent-green)';
+                    uploadBtn.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    lucide.createIcons();
+                } else {
+                    const errData = await response.text();
+                    console.error('Upload failed:', response.status, errData);
+                    uploadLabel.textContent = 'Upload Failed';
+                    uploadStatus.textContent = 'Error: ' + (errData || 'Could not upload. Check Supabase Storage bucket settings.');
+                    uploadStatus.style.color = 'var(--accent-red)';
+                    uploadBtn.innerHTML = '<i data-lucide="alert-circle"></i> Try Again';
+                    lucide.createIcons();
+                }
+            } catch (err) {
+                console.error('Upload error:', err);
+                uploadLabel.textContent = 'Upload Failed';
+                uploadStatus.textContent = 'Network error. Please check your connection.';
+                uploadStatus.style.color = 'var(--accent-red)';
+                uploadBtn.innerHTML = '<i data-lucide="alert-circle"></i> Try Again';
+                lucide.createIcons();
+            }
+        }
 
         if (avatarInput) {
             avatarInput.addEventListener('change', function() {
                 const file = this.files[0];
                 if (file) {
-                    if (file.size > 2 * 1024 * 1024) {
-                        alert('File size must be less than 2MB');
-                        this.value = '';
-                        return;
-                    }
+                    // Show preview immediately
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         photoPreview.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
                         previewAvatar.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
                     };
                     reader.readAsDataURL(file);
+                    // Upload to Supabase
+                    uploadAvatar(file);
                 }
             });
         }
@@ -792,8 +864,13 @@ $currentAdminPage = 'settings';
             uploadArea.addEventListener('drop', (e) => {
                 const file = e.dataTransfer.files[0];
                 if (file && file.type.startsWith('image/')) {
-                    avatarInput.files = e.dataTransfer.files;
-                    avatarInput.dispatchEvent(new Event('change'));
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        photoPreview.innerHTML = '<img src="' + ev.target.result + '" alt="Preview">';
+                        previewAvatar.innerHTML = '<img src="' + ev.target.result + '" alt="Preview">';
+                    };
+                    reader.readAsDataURL(file);
+                    uploadAvatar(file);
                 }
             });
         }

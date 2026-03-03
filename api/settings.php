@@ -45,33 +45,10 @@ if (empty($updateData['email'])) {
     redirect(SITE_URL . '/admin/settings.php');
 }
 
-// Handle avatar upload if provided
-if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
-    $file = $_FILES['avatar'];
-    $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    
-    if (!in_array($file['type'], $allowedTypes)) {
-        set_flash('error', 'Invalid file type. Only JPG, PNG, and WebP are allowed.');
-        redirect(SITE_URL . '/admin/settings.php');
-    }
-    
-    if ($file['size'] > 2 * 1024 * 1024) {
-        set_flash('error', 'File too large. Maximum size is 2MB.');
-        redirect(SITE_URL . '/admin/settings.php');
-    }
-    
-    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $fileName = 'avatar-' . time() . '.' . $ext;
-    $fileContent = file_get_contents($file['tmp_name']);
-    
-    $uploadResult = supabase_upload('portfolio', 'avatars/' . $fileName, $fileContent, $file['type']);
-    
-    if ($uploadResult['status'] >= 200 && $uploadResult['status'] < 300) {
-        $updateData['avatar_url'] = supabase_public_url('portfolio', 'avatars/' . $fileName);
-    } else {
-        set_flash('error', 'Failed to upload avatar. Please try again.');
-        redirect(SITE_URL . '/admin/settings.php');
-    }
+// Handle avatar URL (uploaded client-side to Supabase Storage)
+$avatarUrl = trim($_POST['avatar_url'] ?? '');
+if (!empty($avatarUrl)) {
+    $updateData['avatar_url'] = $avatarUrl;
 }
 
 // Update settings in Supabase
