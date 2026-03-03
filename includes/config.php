@@ -33,8 +33,10 @@ if (!defined('SUPABASE_SERVICE_KEY')) {
 // Site Configuration - Auto-detect URL for Vercel vs local
 $isVercel = getenv('VERCEL') || getenv('VERCEL_URL');
 if ($isVercel) {
-    $protocol = 'https';
-    $host = getenv('VERCEL_URL') ?: $_SERVER['HTTP_HOST'];
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || 
+                (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') 
+                ? 'https' : 'https'; // Vercel is always HTTPS
+    $host = $_SERVER['HTTP_HOST'] ?? (getenv('VERCEL_URL') ?: 'protofilia.vercel.app');
     $siteUrl = $protocol . '://' . $host;
 } else {
     $siteUrl = 'http://localhost/protofilia';
