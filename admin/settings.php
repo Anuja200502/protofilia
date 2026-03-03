@@ -247,8 +247,14 @@ $currentAdminPage = 'settings';
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            overflow: hidden;
         }
         .preview-avatar i { width: 28px; height: 28px; color: var(--accent-secondary); }
+        .preview-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
         .preview-info h2 {
             font-size: 22px;
             font-weight: 800;
@@ -268,6 +274,74 @@ $currentAdminPage = 'settings';
             gap: 4px;
         }
         .preview-info .preview-email i { width: 12px; height: 12px; }
+
+        /* Photo upload */
+        .photo-upload-area {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 20px;
+            border: 2px dashed var(--border-subtle);
+            border-radius: var(--radius-md);
+            transition: var(--transition-normal);
+            cursor: pointer;
+        }
+        .photo-upload-area:hover {
+            border-color: var(--accent-secondary);
+            background: rgba(108, 92, 231, 0.03);
+        }
+        .photo-upload-area.dragover {
+            border-color: var(--accent-secondary);
+            background: rgba(108, 92, 231, 0.08);
+        }
+        .photo-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(108, 92, 231, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            border: 2px solid var(--border-subtle);
+        }
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-preview i { width: 32px; height: 32px; color: var(--text-muted); }
+        .photo-upload-text h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .photo-upload-text p {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .photo-upload-text .btn-upload {
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(108, 92, 231, 0.12);
+            color: var(--accent-secondary);
+            border: 1px solid rgba(108, 92, 231, 0.3);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-normal);
+        }
+        .photo-upload-text .btn-upload:hover {
+            background: rgba(108, 92, 231, 0.2);
+        }
+        .photo-upload-text .btn-upload i { width: 14px; height: 14px; }
 
         /* Submit bar */
         .settings-submit {
@@ -419,8 +493,12 @@ $currentAdminPage = 'settings';
 
             <!-- Profile Preview Card -->
             <div class="preview-card">
-                <div class="preview-avatar">
-                    <i data-lucide="user-circle"></i>
+                <div class="preview-avatar" id="previewAvatar">
+                    <?php if (!empty($settings['avatar_url'])): ?>
+                        <img src="<?php echo sanitize($settings['avatar_url']); ?>" alt="Profile">
+                    <?php else: ?>
+                        <i data-lucide="user-circle"></i>
+                    <?php endif; ?>
                 </div>
                 <div class="preview-info">
                     <h2 id="previewName"><?php echo sanitize($settings['name'] ?? 'Your Name'); ?></h2>
@@ -433,7 +511,38 @@ $currentAdminPage = 'settings';
             </div>
 
             <!-- Settings Form -->
-            <form action="<?php echo SITE_URL; ?>/api/settings.php" method="POST" class="settings-container">
+            <form action="<?php echo SITE_URL; ?>/api/settings.php" method="POST" enctype="multipart/form-data" class="settings-container">
+                
+                <!-- Profile Photo -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon green">
+                            <i data-lucide="camera"></i>
+                        </div>
+                        <div>
+                            <div class="settings-card-title">Profile Photo</div>
+                            <div class="settings-card-desc">Upload a profile picture — shown on the About page and admin panel</div>
+                        </div>
+                    </div>
+
+                    <label for="avatarInput" class="photo-upload-area" id="photoUploadArea">
+                        <div class="photo-preview" id="photoPreview">
+                            <?php if (!empty($settings['avatar_url'])): ?>
+                                <img src="<?php echo sanitize($settings['avatar_url']); ?>" alt="Current photo" id="photoPreviewImg">
+                            <?php else: ?>
+                                <i data-lucide="user-circle" id="photoPreviewIcon"></i>
+                            <?php endif; ?>
+                        </div>
+                        <div class="photo-upload-text">
+                            <h4>Upload Profile Photo</h4>
+                            <p>Drag and drop or click to select. JPG, PNG or WebP. Max 2MB.</p>
+                            <span class="btn-upload">
+                                <i data-lucide="upload"></i> Choose File
+                            </span>
+                        </div>
+                        <input type="file" id="avatarInput" name="avatar" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                    </label>
+                </div>
                 
                 <!-- Personal Info -->
                 <div class="settings-card">
@@ -639,6 +748,54 @@ $currentAdminPage = 'settings';
                 flash.style.transform = 'translateY(-10px)';
                 setTimeout(() => flash.remove(), 400);
             }, 4000);
+        }
+
+        // === Photo Upload Preview ===
+        const avatarInput = document.getElementById('avatarInput');
+        const photoPreview = document.getElementById('photoPreview');
+        const previewAvatar = document.getElementById('previewAvatar');
+        const uploadArea = document.getElementById('photoUploadArea');
+
+        if (avatarInput) {
+            avatarInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('File size must be less than 2MB');
+                        this.value = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        photoPreview.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
+                        previewAvatar.innerHTML = '<img src="' + e.target.result + '" alt="Preview">';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Drag and drop
+        if (uploadArea) {
+            ['dragenter', 'dragover'].forEach(evt => {
+                uploadArea.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+            });
+            ['dragleave', 'drop'].forEach(evt => {
+                uploadArea.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                });
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    avatarInput.files = e.dataTransfer.files;
+                    avatarInput.dispatchEvent(new Event('change'));
+                }
+            });
         }
     </script>
 </body>

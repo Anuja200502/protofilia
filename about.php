@@ -29,10 +29,14 @@ include __DIR__ . '/includes/header.php';
         <div class="about-grid">
             <div class="about-image-wrapper fade-in">
                 <div class="about-image">
+                    <?php if (!empty($settings['avatar_url'])): ?>
+                        <img src="<?php echo sanitize($settings['avatar_url']); ?>" alt="<?php echo sanitize($settings['name']); ?>" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-lg);">
+                    <?php else: ?>
                     <div class="about-image-placeholder">
                         <i data-lucide="user-circle"></i>
                         <span style="font-size: 14px;">Profile Photo</span>
                     </div>
+                    <?php endif; ?>
                 </div>
                 <div class="about-image-badge">
                     <span class="badge-number">1+</span>
