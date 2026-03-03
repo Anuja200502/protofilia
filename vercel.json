@@ -1,0 +1,36 @@
+{
+    "functions": {
+        "api/**/*.php": {
+            "runtime": "vercel-community/php@0.8.0"
+        },
+        "*.php": {
+            "runtime": "vercel-community/php@0.8.0"
+        },
+        "admin/**/*.php": {
+            "runtime": "vercel-community/php@0.8.0"
+        },
+        "includes/**/*.php": {
+            "runtime": "vercel-community/php@0.8.0"
+        }
+    },
+    "routes": [
+        { "src": "/assets/(.*)", "dest": "/assets/$1" },
+        { "src": "/api/contact.php", "dest": "/api/contact.php" },
+        { "src": "/api/settings.php", "dest": "/api/settings.php" },
+        { "src": "/about.php", "dest": "/about.php" },
+        { "src": "/contact.php", "dest": "/contact.php" },
+        { "src": "/projects.php", "dest": "/projects.php" },
+        { "src": "/admin/login.php", "dest": "/admin/login.php" },
+        { "src": "/admin/dashboard.php", "dest": "/admin/dashboard.php" },
+        { "src": "/admin/manage-projects.php", "dest": "/admin/manage-projects.php" },
+        { "src": "/admin/settings.php", "dest": "/admin/settings.php" },
+        { "src": "/(.*)", "dest": "/index.php" }
+    ],
+    "env": {
+        "SUPABASE_URL": "@supabase_url",
+        "SUPABASE_ANON_KEY": "@supabase_anon_key",
+        "SUPABASE_SERVICE_KEY": "@supabase_service_key",
+        "SITE_NAME": "Anuja Kodikara",
+        "SITE_DESCRIPTION": "Creative Portfolio & Digital Showcase"
+    }
+}

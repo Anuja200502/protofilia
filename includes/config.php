@@ -3,21 +3,49 @@
  * Protofilia Portfolio - Supabase Configuration
  * =============================================
  * Supabase REST API integration for PHP
+ * Supports both local (XAMPP) and Vercel deployment
  */
 
 session_start();
 
 // ============================================
-// 🔧 SUPABASE CREDENTIALS - UPDATE THESE!
+// 🔧 LOCAL OVERRIDES (for XAMPP development)
 // ============================================
-define('SUPABASE_URL', 'https://vieekahaevicbdeavtse.supabase.co');
-define('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpZWVrYWhhZXZpY2JkZWF2dHNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MzI4MjUsImV4cCI6MjA4NzUwODgyNX0.kV2SNHY1VivSKFqR1AxQb7cRg5uUYXONfhFyygKXqGY');
-define('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpZWVrYWhhZXZpY2JkZWF2dHNlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTkzMjgyNSwiZXhwIjoyMDg3NTA4ODI1fQ.FRwgiAhQC8wCxc_E8iZjAbW_MnMQFcholek0afuTmno'); // For admin operations
+// If a local config exists, load it for development credentials
+if (file_exists(__DIR__ . '/config.local.php')) {
+    require_once __DIR__ . '/config.local.php';
+}
 
-// Site Configuration
-define('SITE_NAME', 'Anuja Kodikara');
-define('SITE_URL', 'http://localhost/protofilia');
-define('SITE_DESCRIPTION', 'Creative Portfolio & Digital Showcase');
+// ============================================
+// 🔧 SUPABASE CREDENTIALS
+// ============================================
+// Uses environment variables (Vercel) with fallback to local constants
+if (!defined('SUPABASE_URL')) {
+    define('SUPABASE_URL', getenv('SUPABASE_URL') ?: '');
+}
+if (!defined('SUPABASE_ANON_KEY')) {
+    define('SUPABASE_ANON_KEY', getenv('SUPABASE_ANON_KEY') ?: '');
+}
+if (!defined('SUPABASE_SERVICE_KEY')) {
+    define('SUPABASE_SERVICE_KEY', getenv('SUPABASE_SERVICE_KEY') ?: '');
+}
+
+// Site Configuration - Auto-detect URL for Vercel vs local
+$isVercel = getenv('VERCEL') || getenv('VERCEL_URL');
+if ($isVercel) {
+    $protocol = 'https';
+    $host = getenv('VERCEL_URL') ?: $_SERVER['HTTP_HOST'];
+    $siteUrl = $protocol . '://' . $host;
+} else {
+    $siteUrl = 'http://localhost/protofilia';
+}
+if (!defined('SITE_NAME')) {
+    define('SITE_NAME', getenv('SITE_NAME') ?: 'Anuja Kodikara');
+}
+define('SITE_URL', $siteUrl);
+if (!defined('SITE_DESCRIPTION')) {
+    define('SITE_DESCRIPTION', getenv('SITE_DESCRIPTION') ?: 'Creative Portfolio & Digital Showcase');
+}
 
 // ============================================
 // 📡 Supabase REST API Helper Functions
