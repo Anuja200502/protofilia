@@ -4,7 +4,10 @@
  */
 require_once __DIR__ . '/../includes/functions.php';
 
-if (!is_admin_logged_in()) {
+// Token auth (sessions don't work across Vercel serverless functions)
+$authToken = $_POST['_token'] ?? '';
+$expectedToken = md5(SUPABASE_SERVICE_KEY . 'settings');
+if ($authToken !== $expectedToken) {
     redirect(SITE_URL . '/admin/login.php');
 }
 
@@ -55,9 +58,7 @@ if (!empty($avatarUrl)) {
 $result = update_settings($settingsId, $updateData);
 
 if ($result['status'] >= 200 && $result['status'] < 300) {
-    set_flash('success', 'Profile settings updated successfully! ✨');
+    redirect(SITE_URL . '/admin/settings.php?msg=success');
 } else {
-    set_flash('error', 'Failed to update settings. Please try again.');
+    redirect(SITE_URL . '/admin/settings.php?msg=error');
 }
-
-redirect(SITE_URL . '/admin/settings.php');

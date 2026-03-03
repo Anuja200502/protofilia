@@ -471,8 +471,16 @@ $currentAdminPage = 'settings';
         
         <!-- Main Content -->
         <div class="admin-main">
-            <!-- Flash Message -->
-            <?php $flash = get_flash(); if ($flash): ?>
+            <!-- Flash Message (from session or URL param) -->
+            <?php 
+            $flash = get_flash();
+            $msgParam = $_GET['msg'] ?? '';
+            if ($msgParam === 'success') {
+                $flash = ['type' => 'success', 'message' => 'Profile settings updated successfully! ✨'];
+            } elseif ($msgParam === 'error') {
+                $flash = ['type' => 'error', 'message' => 'Failed to update settings. Please try again.'];
+            }
+            if ($flash): ?>
             <div class="flash-message flash-<?php echo $flash['type']; ?>" id="flashMessage" 
                  style="position: relative; top: 0; margin-bottom: 20px; border-radius: var(--radius-md); padding: 14px 20px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -512,6 +520,7 @@ $currentAdminPage = 'settings';
 
             <!-- Settings Form -->
             <form action="<?php echo SITE_URL; ?>/api/settings.php" method="POST" enctype="multipart/form-data" class="settings-container">
+                <input type="hidden" name="_token" value="<?php echo md5(SUPABASE_SERVICE_KEY . 'settings'); ?>">
                 
                 <!-- Profile Photo -->
                 <div class="settings-card">
